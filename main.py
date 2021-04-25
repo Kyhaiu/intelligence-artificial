@@ -72,7 +72,7 @@ def make_map():
     res = convolve(res, RULE2, 5)
 
     res[::] *= 255
-    
+
     aux = np.zeros((15, 15), dtype=np.uint8)
     aux[0:-1, 0:-1]=1
     # expand each tile from 1px x 1px to 15px x 15px
@@ -84,14 +84,7 @@ def make_map():
 
 def render(img):
     """Render img to WIN."""
-    
-    # highlight the current selected tile
-    x, y = pygame.mouse.get_pos()
-    x = int(x - x % 15)
-    y = int(y - y % 15)
 
-    img[x:x+14, y:y+14] = np.array([111, 155, 202], dtype=np.uint8)
-    
     # highlight the visited tiles
     if VIST is not None:
         for x, y in VIST:
@@ -112,6 +105,13 @@ def render(img):
         x, y = END
         img[x*15:x*15+14, y*15:y*15+14] = np.array([211, 169,  74], dtype=np.uint8)
 
+    # highlight the current selected tile
+    x, y = pygame.mouse.get_pos()
+    x = int(x - x % 15)
+    y = int(y - y % 15)
+
+    img[x:x+14, y:y+14] = np.array([111, 155, 202], dtype=np.uint8)
+
     WIN.blit(pygame.surfarray.make_surface(img), (0, 0))
     pygame.display.flip()
 
@@ -123,18 +123,27 @@ def get_mpos():
 
 
 def astar(start, end, m, h):
+    """A*"""
     # NOTE: m is padded so that we don't have to check for boundaries
 
     neighbors = np.array([[0, -1], [1, 0], [0, 1], [-1, 0]])
-    
-    min_heap = []
+    # neighbors order
+    #   +-+
+    #   |1|
+    # +-+-+-+
+    # |4| |2|
+    # +-+-+-+
+    #   |3|
+    #   +-+
 
+    min_heap = [] # conjunto aberto de elementos(binary heap)
+
+    # inicializa os mapas g e f com inf
     gscore = np.full((W+2, H+2), np.inf)
     fscore = np.full((W+2, H+2), np.inf)
 
     path = {}
-    global VIST
-    VIST = set()
+    vist = set()
 
     gscore[start[0], start[1]] = 0
     fscore[start[0], start[1]] = h(start, end)
@@ -146,6 +155,7 @@ def astar(start, end, m, h):
         curr = np.array(heappop(min_heap)[1])
 
         if (curr == end).all():
+            # chegamos no destino, reconstruir o caminho
             ret_path = []
 
             c = (curr[0], curr[1])
@@ -153,25 +163,32 @@ def astar(start, end, m, h):
             while c in path:
                 ret_path.append((c[0] - 1, c[1] - 1)) # remove the padding
                 c = path[c]
-            return ret_path
+
+            return ret_path, vist
 
         for n in neighbors:
             wn = curr + n
 
             if m[wn[0], wn[1]] == 255: # only 255 are valid neighbors
-                t_gscore = gscore[curr[0], curr[1]] + 1
+                                       # apenas vizinhos com valor 255 são validos
 
-                VIST.add((wn[0]-1, wn[1]-1))
+                t_gscore = gscore[curr[0], curr[1]] + 1 # a distancia entre cada vizinho eh sempre 1
+
+                vist.add((wn[0]-1, wn[1]-1)) # add working neighbor to visited set(removing padding)
+                                             # marcar o vizinho como visitado
+
 
                 if t_gscore < gscore[wn[0], wn[1]]:
+                    # achamos um caminho com uma distancia melhor distancia
                     path[(wn[0], wn[1])] = (curr[0], curr[1])
                     gscore[wn[0], wn[1]] = t_gscore
-                    fscore[wn[0], wn[1]] = gscore[wn[0], wn[1]] + h(wn, end)
+                    fscore[wn[0], wn[1]] = gscore[wn[0], wn[1]] + h(wn, end) # heuristica usada aqui
 
                     if (wn[0], wn[1]) not in [i[1] for i in min_heap]:
+                        # se o vizinho não esta no monte(heap) adicioná-lo
                         heappush(min_heap, (fscore[wn[0], wn[1]], (wn[0], wn[1])))
 
-    return None
+    return None, None
 
 def bread_first_serach(start, end):
     queue = []
@@ -206,19 +223,19 @@ def bread_first_serach(start, end):
 
 def min_distance(dist, spt):
     min_ = sys.maxsize
- 
+
     for v in range(V):
         if dist[v] < min_ and spt[v] == False:
             min_ = dist[v]
             min_index = v
- 
+
     return min_index
- 
+
 def dijkstra(self, start):
     dist = [sys.maxsize] * V
     dist[start] = 0
     short_past_tree = [False] * V
- 
+
     for cout in range(V):
         u = min_distance(dist, short_past_tree)
 
@@ -227,7 +244,7 @@ def dijkstra(self, start):
     for v in range(V):
         if GRAPH[u][v] > 0 and short_past_tree[v] == False and dist[v] > dist[u] + GRAPH[u][v]:
             dist[v] = dist[u] + GRAPH[u][v]
-    
+
     #CHAMAR FUNCAO QUE PINTA O CAMINHO DO DIJKSTRA
     #achar um jeito de converter o mapa numa matriz de adjacencia
     #se conseguir terminar o dijktra da pra apagar a outra função que criei
@@ -266,16 +283,17 @@ if __name__ == "__main__":
                     # pad MAP
                     m = np.zeros((W+2, H+2), dtype=np.uint8)
                     m[1:-1, 1:-1] += MAP
-                    # euclidean distance heuristic
 
-                    PATH = astar(
+                    PATH, VIST = astar(
                         np.array(START) + 1,
                         np.array(END) + 1,
                         m,
-                        lambda x, y: (y[0]-x[0])**2 + (y[1]-x[1])**2
+                        # lambda x, y: np.sum((np.abs(x - y)))       # manhattan distance heuristic
+                        lambda x, y: (y[0]-x[0])**2 + (y[1]-x[1])**2 # euclidean distance heuristic
                     )
             elif event.type == KEYDOWN and event.key == K_d:
-                pass
+                if START is not None and END is not None:
+                    bread_first_serach(START, END)
             elif event.type == MOUSEBUTTONDOWN and event.button == 1:
                 x, y = get_mpos()
                 if not MAP[x, y] == 0:
@@ -284,8 +302,6 @@ if __name__ == "__main__":
                 x, y = get_mpos()
                 if not MAP[x, y] == 0:
                     END = x, y
-            elif START != None and END != None:
-                bread_first_serach(START, END)
 
         render(IMG.copy())
         print(f'FPS: {int(CLOCK.get_fps())}\r', end='')
