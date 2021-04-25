@@ -1,6 +1,6 @@
 import numpy as np
 import pygame
-import time
+import math
 import sys
 
 # for keys
@@ -133,6 +133,36 @@ def bread_first_serach(start, end):
         if y-1 > 0 and FILLED_MAP[x][y-1] == 255:
             queue.append([x, y-1])
             FILLED_MAP[x][y-1] = 100
+
+
+def min_distance(dist, spt):
+    min_ = sys.maxsize
+ 
+    for v in range(V):
+        if dist[v] < min_ and spt[v] == False:
+            min_ = dist[v]
+            min_index = v
+ 
+    return min_index
+ 
+def dijkstra(self, start):
+    dist = [sys.maxsize] * V
+    dist[start] = 0
+    short_past_tree = [False] * V
+ 
+    for cout in range(V):
+        u = min_distance(dist, short_past_tree)
+
+        short_past_tree[u] = True
+
+    for v in range(V):
+        if GRAPH[u][v] > 0 and short_past_tree[v] == False and dist[v] > dist[u] + GRAPH[u][v]:
+            dist[v] = dist[u] + GRAPH[u][v]
+    
+    #CHAMAR FUNCAO QUE PINTA O CAMINHO DO DIJKSTRA
+    #achar um jeito de converter o mapa numa matriz de adjacencia
+    #se conseguir terminar o dijktra da pra apagar a outra função que criei
+
 
 
 if __name__ == "__main__":
