@@ -1,5 +1,6 @@
 import numpy as np
 import pygame
+import time
 import sys
 
 # for keys
@@ -103,6 +104,36 @@ def get_mpos():
     x, y = pygame.mouse.get_pos()
     return int(x / 15), int(y / 15)
 
+def bread_first_serach(start, end):
+    queue = []
+    queue.append(start)
+
+    FILLED_MAP = MAP.copy()
+
+    while queue != []:
+        x, y = queue[0][0], queue[0][1]
+        queue.pop(0)
+
+        if x == end[0] and y == end[1]:
+            del queue
+            break
+
+        if x+1 < 50 and FILLED_MAP[x+1][y] == 255:
+            queue.append([x+1, y])
+            FILLED_MAP[x+1][y] = 100
+
+        if y+1 < 50 and MAP[x][y+1] == 255:
+            queue.append([x, y+1])
+            FILLED_MAP[x][y+1] = 100
+
+        if x-1 > 0 and FILLED_MAP[x-1][y] == 255:
+            queue.append([x-1, y])
+            FILLED_MAP[x-1][y] = 100
+
+        if y-1 > 0 and FILLED_MAP[x][y-1] == 255:
+            queue.append([x, y-1])
+            FILLED_MAP[x][y-1] = 100
+
 
 if __name__ == "__main__":
     pygame.init()
@@ -137,5 +168,7 @@ if __name__ == "__main__":
                 x, y = get_mpos()
                 if not MAP[x, y] == 0:
                     END = x, y
+            elif START != None and END != None:
+                bread_first_serach(START, END)
 
         render()
