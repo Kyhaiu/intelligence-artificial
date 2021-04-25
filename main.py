@@ -4,6 +4,7 @@ import math
 import sys
 
 from heapq import *
+from queue import *
 
 # for keys
 from pygame.locals import *
@@ -164,6 +165,8 @@ def astar(start, end, m, h):
                 ret_path.append((c[0] - 1, c[1] - 1)) # remove the padding
                 c = path[c]
 
+            print(f':: A*\n dist: {len(ret_path)}\n vist: {len(vist)}')
+
             return ret_path, vist
 
         for n in neighbors:
@@ -190,65 +193,58 @@ def astar(start, end, m, h):
 
     return None, None
 
-def bread_first_serach(start, end):
-    queue = []
-    queue.append(start)
 
-    FILLED_MAP = MAP.copy()
+def bfs(start, end, m):
+    """Breadth-first search."""
+    # NOTE: m is padded
 
-    while queue != []:
-        x, y = queue[0][0], queue[0][1]
-        queue.pop(0)
+    queue = Queue()
 
-        if x == end[0] and y == end[1]:
-            del queue
-            break
+    queue.put((start[0], start[1]))
 
-        if x+1 < 50 and FILLED_MAP[x+1][y] == 255:
-            queue.append([x+1, y])
-            FILLED_MAP[x+1][y] = 100
+    vist = set()
+    vist.add((start[0], start[1]))
 
-        if y+1 < 50 and MAP[x][y+1] == 255:
-            queue.append([x, y+1])
-            FILLED_MAP[x][y+1] = 100
+    path = {}
 
-        if x-1 > 0 and FILLED_MAP[x-1][y] == 255:
-            queue.append([x-1, y])
-            FILLED_MAP[x-1][y] = 100
+    neighbors = np.array([[0, -1], [1, 0], [0, 1], [-1, 0]])
+    # neighbors order
+    #   +-+
+    #   |1|
+    # +-+-+-+
+    # |4| |2|
+    # +-+-+-+
+    #   |3|
+    #   +-+
 
-        if y-1 > 0 and FILLED_MAP[x][y-1] == 255:
-            queue.append([x, y-1])
-            FILLED_MAP[x][y-1] = 100
+    while not queue.empty():
 
+        curr = queue.get()
 
-def min_distance(dist, spt):
-    min_ = sys.maxsize
+        if curr[0] == end[0] and curr[1] == end[1]:
+            # chegamos no destino, reconstruir o caminho
+            ret_path = []
 
-    for v in range(V):
-        if dist[v] < min_ and spt[v] == False:
-            min_ = dist[v]
-            min_index = v
+            c = curr
 
-    return min_index
+            while c in path:
+                ret_path.append((c[0]-1, c[1]-1)) # remove the padding
+                c = path[c]
 
-def dijkstra(self, start):
-    dist = [sys.maxsize] * V
-    dist[start] = 0
-    short_past_tree = [False] * V
+            print(f':: BFS\n dist: {len(ret_path)}\n vist: {len(vist)}')
 
-    for cout in range(V):
-        u = min_distance(dist, short_past_tree)
+            return ret_path, [(i[0]-1, i[1]-1) for i in vist]
 
-        short_past_tree[u] = True
+        for n in neighbors:
+            wn = (curr[0] + n[0], curr[1] + n[1])
 
-    for v in range(V):
-        if GRAPH[u][v] > 0 and short_past_tree[v] == False and dist[v] > dist[u] + GRAPH[u][v]:
-            dist[v] = dist[u] + GRAPH[u][v]
+            if m[wn[0], wn[1]] == 255:
+                if wn not in vist:
+                    vist.add(wn)
+                    path[wn] = curr
+                    queue.put(wn)
 
-    #CHAMAR FUNCAO QUE PINTA O CAMINHO DO DIJKSTRA
-    #achar um jeito de converter o mapa numa matriz de adjacencia
-    #se conseguir terminar o dijktra da pra apagar a outra função que criei
-
+    return None, None
 
 
 if __name__ == "__main__":
@@ -266,34 +262,46 @@ if __name__ == "__main__":
 
     CLOCK = pygame.time.Clock()
 
+    if len(sys.argv) == 2 and sys.argv[1] == 'm':
+        # manhattan distance heuristic
+        heuristic = lambda x, y: np.sum((np.abs(x - y)))
+    else:
+        # euclidean distance heuristic
+        heuristic = lambda x, y: (y[0]-x[0])**2 + (y[1]-x[1])**2
+
     while True:
         CLOCK.tick(30) # set FPS to 30
         for event in pygame.event.get():
             if event.type == QUIT or (event.type == KEYDOWN and event.key == K_q):
-                print('')
+                # print('')
                 pygame.quit()
                 sys.exit()
             elif event.type == KEYDOWN and event.key == K_r:
                 START = None
                 END = None
+                VIST = None
+                PATH = None
 
                 MAP, IMG = make_map()
             elif event.type == KEYDOWN and event.key == K_a:
                 if START is not None and END is not None:
                     # pad MAP
-                    m = np.zeros((W+2, H+2), dtype=np.uint8)
-                    m[1:-1, 1:-1] += MAP
+                    padded_map = np.zeros((W+2, H+2), dtype=np.uint8)
+                    padded_map[1:-1, 1:-1] += MAP
 
                     PATH, VIST = astar(
                         np.array(START) + 1,
                         np.array(END) + 1,
-                        m,
-                        # lambda x, y: np.sum((np.abs(x - y)))       # manhattan distance heuristic
-                        lambda x, y: (y[0]-x[0])**2 + (y[1]-x[1])**2 # euclidean distance heuristic
+                        padded_map,
+                        heuristic
                     )
             elif event.type == KEYDOWN and event.key == K_d:
                 if START is not None and END is not None:
-                    bread_first_serach(START, END)
+                    # pad MAP
+                    padded_map = np.zeros((W+2, H+2), dtype=np.uint8)
+                    padded_map[1:-1, 1:-1] += MAP
+
+                    PATH, VIST = bfs((START[0] + 1, START[1] + 1), (END[0] + 1, END[1] + 1), padded_map)
             elif event.type == MOUSEBUTTONDOWN and event.button == 1:
                 x, y = get_mpos()
                 if not MAP[x, y] == 0:
@@ -304,4 +312,4 @@ if __name__ == "__main__":
                     END = x, y
 
         render(IMG.copy())
-        print(f'FPS: {int(CLOCK.get_fps())}\r', end='')
+        # print(f'FPS: {int(CLOCK.get_fps())}\r', end='')
