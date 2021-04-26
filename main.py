@@ -21,6 +21,16 @@ from queue import *
         * A*
 """
 
+HEADER = "\033[1m"\
+         "KEYS:\n"\
+         "\tr - novo mapa\n"\
+         "\ta - A* (A star)\n"\
+         "\td - BFS (Breadth-First Search/Busca em largura)\n"\
+         "\tm - Muda a heuristica do A* para Manhattan\n"\
+         "\tleft click - Seta o inicio\n"\
+         "\tright click - Seta o final\n"\
+         "\033[0m"
+
 W = 80
 H = 80
 
@@ -271,6 +281,7 @@ def bfs(start, end, m):
 
 
 if __name__ == "__main__":
+    print(HEADER)
     pygame.init()
     pygame.display.set_caption('Path-Finding')
 
