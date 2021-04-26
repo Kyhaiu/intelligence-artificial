@@ -331,7 +331,8 @@ if __name__ == "__main__":
                     pygame.display.set_caption('Path-Finding :: BFS')
 
                     PATH, VIST = bfs((START[0] + 1, START[1] + 1), (END[0] + 1, END[1] + 1), padded_map)
-            elif event.type == KEYDOWN and event.type == K_m:
+            elif event.type == KEYDOWN and event.key == K_m:
+                print('heuristic == Manhattan')
                 heuristic = lambda x, y: abs(x[0] - y[0]) + abs(x[1] - y[1])
             elif event.type == MOUSEBUTTONDOWN and event.button == 1:
                 x, y = get_mpos()
