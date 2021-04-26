@@ -1,6 +1,8 @@
 to install dependences run follow command: pip install -r requirements.txt
 
-to run: py main.py
+to run: python main.py
+
+to run using the Manhattan distance as the default heuristic use: python main.py m
 
 KEYS:
     - to reset and generate a new map press 'r'.
@@ -8,7 +10,8 @@ KEYS:
     - to mark the goal 'left-click'.
     - to execute Breadth-First Search algorithm. Mark the begin, goal and press 'd'.
     - to execute A* algorithm. Mark the begin, goal and press 'a'.
+    - to change the A* heuristic to Manhattan distance press 'm'.
 
 NOTE: 
     - the program isn't case sensitive.
-    - the result of each method is shown in UI and print in console/terminal.
+    - the result of each method is shown in UI and printed in console/terminal.

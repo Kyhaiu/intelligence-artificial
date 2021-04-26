@@ -9,6 +9,7 @@ from heapq import *
 from pygame.locals import *
 from queue import *
 
+
 """
     Código criado por:
         - Lucas Fischer Mulling;
@@ -20,10 +21,8 @@ from queue import *
         * A*
 """
 
-
-
-W = 75
-H = 75
+W = 80
+H = 80
 
 T = 10
 
@@ -269,7 +268,7 @@ def bfs(start, end, m):
                     path[wn] = curr
                     queue.put(wn)
 
-    return None, vist
+    return None, [(i[0]-1, i[1]-1) for i in vist]
 
 
 if __name__ == "__main__":
@@ -307,12 +306,16 @@ if __name__ == "__main__":
                 VIST = None
                 PATH = None
 
+                pygame.display.set_caption('Path-Finding')
+
                 MAP, IMG = make_map()
             elif event.type == KEYDOWN and event.key == K_a:
                 if START is not None and END is not None:
                     # pad MAP
                     padded_map = np.zeros((W+2, H+2), dtype=np.uint8)
                     padded_map[1:-1, 1:-1] += MAP
+
+                    pygame.display.set_caption('Path-Finding :: A*')
 
                     PATH, VIST = astar(
                         np.array(START) + 1,
@@ -326,7 +329,11 @@ if __name__ == "__main__":
                     padded_map = np.zeros((W+2, H+2), dtype=np.uint8)
                     padded_map[1:-1, 1:-1] += MAP
 
+                    pygame.display.set_caption('Path-Finding :: BFS')
+
                     PATH, VIST = bfs((START[0] + 1, START[1] + 1), (END[0] + 1, END[1] + 1), padded_map)
+            elif event.type == KEYDOWN and event.type == K_m:
+                heuristic = lambda x, y: abs(x[0] - y[0]) + abs(x[1] - y[1])
             elif event.type == MOUSEBUTTONDOWN and event.button == 1:
                 x, y = get_mpos()
                 if not MAP[x, y] == 0:
