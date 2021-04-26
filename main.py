@@ -205,7 +205,6 @@ def astar(start, end, m, h):
                     path[wn] = (curr[0], curr[1])
                     gscore[wn] = t_gscore
                     fscore[wn] = gscore[wn] + h(wn, end) # heuristica usada aqui
-                    heappush(min_heap, (fscore[wn], wn))
 
                     if wn not in [i[1] for i in min_heap]:
                         # se o vizinho não esta no monte(heap) adicioná-lo
