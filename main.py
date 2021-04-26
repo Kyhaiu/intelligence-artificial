@@ -1,16 +1,18 @@
 import numpy as np
-import pygame
 import math
+import pygame
 import sys
+import time
 
 from heapq import *
-from queue import *
-
 # for keys
 from pygame.locals import *
+from queue import *
 
-W = 50
-H = 50
+W = 75
+H = 75
+
+T = 10
 
 KERNEL = np.ones((3, 3), dtype=np.uint8)
 KERNEL[1,1] = 0
@@ -74,9 +76,9 @@ def make_map():
 
     res[::] *= 255
 
-    aux = np.zeros((15, 15), dtype=np.uint8)
+    aux = np.zeros((T, T), dtype=np.uint8)
     aux[0:-1, 0:-1]=1
-    # expand each tile from 1px x 1px to 15px x 15px
+    # expand each tile from 1px x 1px to Tpx x Tpx
     img = np.kron(res, aux)
     img = np.stack((img,)*3, axis=-1) # grayscale to RGB(3 channels)
 
@@ -89,29 +91,29 @@ def render(img):
     # highlight the visited tiles
     if VIST is not None:
         for x, y in VIST:
-            img[x*15:x*15+14, y*15:y*15+14] = np.array([128, 128, 128], dtype=np.uint8)
+            img[x*T:x*T+T-1, y*T:y*T+T-1] = np.array([128, 128, 128], dtype=np.uint8)
 
     # highlight the path
     if PATH is not None:
         for x, y in PATH:
-            img[x*15:x*15+14, y*15:y*15+14] = np.array([202, 103,  74], dtype=np.uint8)
+            img[x*T:x*T+T-1, y*T:y*T+T-1] = np.array([202, 103,  74], dtype=np.uint8)
 
     # highlight start tile
     if START is not None:
         x, y = START
-        img[x*15:x*15+14, y*15:y*15+14] = np.array([150, 169, 103], dtype=np.uint8)
+        img[x*T:x*T+T-1, y*T:y*T+T-1] = np.array([150, 169, 103], dtype=np.uint8)
 
     # highlight end tile
     if END is not None:
         x, y = END
-        img[x*15:x*15+14, y*15:y*15+14] = np.array([211, 169,  74], dtype=np.uint8)
+        img[x*T:x*T+T-1, y*T:y*T+T-1] = np.array([211, 169,  74], dtype=np.uint8)
 
     # highlight the current selected tile
     x, y = pygame.mouse.get_pos()
-    x = int(x - x % 15)
-    y = int(y - y % 15)
+    x = int(x - x % T)
+    y = int(y - y % T)
 
-    img[x:x+14, y:y+14] = np.array([111, 155, 202], dtype=np.uint8)
+    img[x:x+T-1, y:y+T-1] = np.array([111, 155, 202], dtype=np.uint8)
 
     WIN.blit(pygame.surfarray.make_surface(img), (0, 0))
     pygame.display.flip()
@@ -120,12 +122,14 @@ def render(img):
 def get_mpos():
     """Mouse position in MAP coordinates."""
     x, y = pygame.mouse.get_pos()
-    return int(x/15), int(y/15)
+    return int(x/T), int(y/T)
 
 
 def astar(start, end, m, h):
     """A*"""
     # NOTE: m is padded so that we don't have to check for boundaries
+
+    s = time.time()
 
     neighbors = np.array([[0, -1], [1, 0], [0, 1], [-1, 0]])
     # neighbors order
@@ -146,10 +150,12 @@ def astar(start, end, m, h):
     path = {}
     vist = set()
 
-    gscore[start[0], start[1]] = 0
-    fscore[start[0], start[1]] = h(start, end)
+    srt = (start[0], start[1])
 
-    heappush(min_heap, (fscore[start[0], start[1]], (start[0], start[1])))
+    gscore[srt] = 0
+    fscore[srt] = h(start, end)
+
+    heappush(min_heap, (fscore[srt], srt))
 
     while min_heap:
 
@@ -157,46 +163,50 @@ def astar(start, end, m, h):
 
         if (curr == end).all():
             # chegamos no destino, reconstruir o caminho
+            e = round(time.time() - s, 4)
+
             ret_path = []
 
             c = (curr[0], curr[1])
 
             while c in path:
-                ret_path.append((c[0] - 1, c[1] - 1)) # remove the padding
+                ret_path.append((c[0]-1, c[1]-1)) # remove the padding
                 c = path[c]
 
-            print(f':: A*\n dist: {len(ret_path)}\n vist: {len(vist)}')
+            print(f':: A*\n dist: {len(ret_path)}\n vist: {len(vist)}\n time: {e}')
 
             return ret_path, vist
 
         for n in neighbors:
-            wn = curr + n
+            wn = (curr[0] + n[0], curr[1] + n[1])
 
-            if m[wn[0], wn[1]] == 255: # only 255 are valid neighbors
-                                       # apenas vizinhos com valor 255 são validos
+            if m[wn] == 255: # only 255 are valid neighbors
+                             # apenas vizinhos com valor 255 são validos
 
-                t_gscore = gscore[curr[0], curr[1]] + 1 # a distancia entre cada vizinho eh sempre 1
+                t_gscore = gscore[curr[0], curr[1]] + 1# a distancia entre cada vizinho sempre eh 1
 
                 vist.add((wn[0]-1, wn[1]-1)) # add working neighbor to visited set(removing padding)
                                              # marcar o vizinho como visitado
 
-
-                if t_gscore < gscore[wn[0], wn[1]]:
+                if t_gscore < gscore[wn]:
                     # achamos um caminho com uma distancia melhor distancia
-                    path[(wn[0], wn[1])] = (curr[0], curr[1])
-                    gscore[wn[0], wn[1]] = t_gscore
-                    fscore[wn[0], wn[1]] = gscore[wn[0], wn[1]] + h(wn, end) # heuristica usada aqui
+                    path[wn] = (curr[0], curr[1])
+                    gscore[wn] = t_gscore
+                    fscore[wn] = gscore[wn] + h(wn, end) # heuristica usada aqui
+                    heappush(min_heap, (fscore[wn], wn))
 
-                    if (wn[0], wn[1]) not in [i[1] for i in min_heap]:
+                    if wn not in [i[1] for i in min_heap]:
                         # se o vizinho não esta no monte(heap) adicioná-lo
-                        heappush(min_heap, (fscore[wn[0], wn[1]], (wn[0], wn[1])))
+                        heappush(min_heap, (fscore[wn], wn))
 
-    return None, None
+    return None, vist
 
 
 def bfs(start, end, m):
     """Breadth-first search."""
     # NOTE: m is padded
+
+    s = time.time()
 
     queue = Queue()
 
@@ -223,6 +233,8 @@ def bfs(start, end, m):
 
         if curr[0] == end[0] and curr[1] == end[1]:
             # chegamos no destino, reconstruir o caminho
+            e = round(time.time() - s, 4)
+
             ret_path = []
 
             c = curr
@@ -231,7 +243,7 @@ def bfs(start, end, m):
                 ret_path.append((c[0]-1, c[1]-1)) # remove the padding
                 c = path[c]
 
-            print(f':: BFS\n dist: {len(ret_path)}\n vist: {len(vist)}')
+            print(f':: BFS\n dist: {len(ret_path)}\n vist: {len(vist)}\n time: {e}')
 
             return ret_path, [(i[0]-1, i[1]-1) for i in vist]
 
@@ -244,7 +256,7 @@ def bfs(start, end, m):
                     path[wn] = curr
                     queue.put(wn)
 
-    return None, None
+    return None, vist
 
 
 if __name__ == "__main__":
@@ -256,21 +268,21 @@ if __name__ == "__main__":
     PATH = None
     VIST = None
 
-    WIN = pygame.display.set_mode((W*15, H*15), 0, 24)
+    WIN = pygame.display.set_mode((W*T, H*T), 0, 24)
 
     MAP, IMG = make_map()
 
-    CLOCK = pygame.time.Clock()
+    # CLOCK = pygame.time.Clock()
 
     if len(sys.argv) == 2 and sys.argv[1] == 'm':
         # manhattan distance heuristic
-        heuristic = lambda x, y: np.sum((np.abs(x - y)))
+        heuristic = lambda x, y: abs(x[0] - y[0]) + abs(x[1] - y[1])
     else:
-        # euclidean distance heuristic
+        # sum of squares heuristic
         heuristic = lambda x, y: (y[0]-x[0])**2 + (y[1]-x[1])**2
 
     while True:
-        CLOCK.tick(30) # set FPS to 30
+        # CLOCK.tick(60) # set FPS to 30
         for event in pygame.event.get():
             if event.type == QUIT or (event.type == KEYDOWN and event.key == K_q):
                 # print('')
