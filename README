@@ -1,1 +1,14 @@
-pip install -r requirements.txt
+to install dependences run follow command: pip install -r requirements.txt
+
+to run: py main.py
+
+KEYS:
+    - to reset and generate a new map press 'r'.
+    - to mark the begin 'right-click'.
+    - to mark the goal 'left-click'.
+    - to execute Breadth-First Search algorithm. Mark the begin, goal and press 'd'.
+    - to execute A* algorithm. Mark the begin, goal and press 'a'.
+
+NOTE: 
+    - the program isn't case sensitive.
+    - the result of each method is shown in UI and print in console/terminal.

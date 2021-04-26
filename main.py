@@ -9,6 +9,19 @@ from heapq import *
 from pygame.locals import *
 from queue import *
 
+"""
+    Código criado por:
+        - Lucas Fischer Mulling;
+        - Marcos Augusto Campagnaro Mucelini
+
+    PROBLEMA ESCOLHIDO: Pathfind
+    ALGORITMO ESCOLHIDOS:
+        * BUSCA EM LARGURA
+        * A*
+"""
+
+
+
 W = 75
 H = 75
 
@@ -74,6 +87,8 @@ def make_map():
     res = convolve(img, RULE1)
     res = convolve(res, RULE2, 5)
 
+    # the matrix resulting of convolution is multiply by 255, because the convolve return a matrix binary.
+    # 255 is the representation of white in 8-bits.
     res[::] *= 255
 
     aux = np.zeros((T, T), dtype=np.uint8)
@@ -143,7 +158,7 @@ def astar(start, end, m, h):
 
     min_heap = [] # conjunto aberto de elementos(binary heap)
 
-    # inicializa os mapas g e f com inf
+    # inicializa os mapas g e f com inf (representação maxima de inteiros da lib numpy).
     gscore = np.full((W+2, H+2), np.inf)
     fscore = np.full((W+2, H+2), np.inf)
 
@@ -180,13 +195,11 @@ def astar(start, end, m, h):
         for n in neighbors:
             wn = (curr[0] + n[0], curr[1] + n[1])
 
-            if m[wn] == 255: # only 255 are valid neighbors
-                             # apenas vizinhos com valor 255 são validos
+            if m[wn] == 255: # apenas vizinhos com valor 255 são validos
 
-                t_gscore = gscore[curr[0], curr[1]] + 1# a distancia entre cada vizinho sempre eh 1
+                t_gscore = gscore[curr[0], curr[1]] + 1 # a distancia entre cada vizinho sempre eh 1
 
-                vist.add((wn[0]-1, wn[1]-1)) # add working neighbor to visited set(removing padding)
-                                             # marcar o vizinho como visitado
+                vist.add((wn[0]-1, wn[1]-1)) # marcar o vizinho como visitado (removendo o padding)
 
                 if t_gscore < gscore[wn]:
                     # achamos um caminho com uma distancia melhor distancia
@@ -240,7 +253,7 @@ def bfs(start, end, m):
             c = curr
 
             while c in path:
-                ret_path.append((c[0]-1, c[1]-1)) # remove the padding
+                ret_path.append((c[0]-1, c[1]-1)) # remove o padding
                 c = path[c]
 
             print(f':: BFS\n dist: {len(ret_path)}\n vist: {len(vist)}\n time: {e}')
